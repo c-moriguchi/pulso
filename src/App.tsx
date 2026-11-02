@@ -18,6 +18,7 @@ import { useScreenWakeLock, useWorkout } from "./hooks/use-workout";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { playCue, speak, unlockAudio } from "./lib/audio";
 import { LIMITS, loadSettings, saveSettings, type Settings } from "./lib/settings";
+import { looksLikeSpotify, parseSpotifyLink } from "./lib/spotify";
 import { formatDuration } from "./lib/workout";
 
 const TABATA = { workSeconds: 20, restSeconds: 10, rounds: 8 };
@@ -27,12 +28,6 @@ const PHASE = {
   work: { label: "Exercício", color: "text-primary" },
   rest: { label: "Pausa", color: "text-rest" },
 } as const;
-
-/** Extrai o embed de um link de playlist/álbum/faixa do Spotify. */
-function spotifyEmbed(url: string): string | null {
-  const match = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?(playlist|album|track)\/([A-Za-z0-9]+)/);
-  return match ? `https://open.spotify.com/embed/${match[1]}/${match[2]}` : null;
-}
 
 function Stepper({
   label,
@@ -99,7 +94,7 @@ export default function App() {
     saveSettings(settings);
   }, [settings]);
 
-  const embed = useMemo(() => spotifyEmbed(settings.playlistUrl), [settings.playlistUrl]);
+  const spotify = useMemo(() => parseSpotifyLink(settings.playlistUrl), [settings.playlistUrl]);
   const isTabata =
     settings.workSeconds === TABATA.workSeconds &&
     settings.restSeconds === TABATA.restSeconds &&
@@ -170,9 +165,21 @@ export default function App() {
         </div>
 
         <div className="mt-3 rounded-2xl bg-card p-4">
-          <label htmlFor="playlist" className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <Music size={16} className="text-spotify" /> Playlist do Spotify
-          </label>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <label htmlFor="playlist" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Music size={16} className="text-spotify" /> Playlist do Spotify
+            </label>
+            {spotify && (
+              <a
+                href={spotify.webUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-semibold transition active:scale-95"
+              >
+                <Play size={11} fill="currentColor" className="text-spotify" /> Tocar
+              </a>
+            )}
+          </div>
           <input
             id="playlist"
             value={settings.playlistUrl}
@@ -182,17 +189,10 @@ export default function App() {
             autoComplete="off"
             className="w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
-          {settings.playlistUrl && !embed && (
-            <p className="mt-2 text-xs text-destructive">Link inválido — cole o link de uma playlist do Spotify.</p>
-          )}
-          {embed && (
-            <iframe
-              title="Playlist do Spotify"
-              src={embed}
-              className="mt-3 h-20 w-full rounded-xl"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
+          {settings.playlistUrl && !spotify && !looksLikeSpotify(settings.playlistUrl) && (
+            <p className="mt-2 text-xs text-destructive">
+              Link inválido — cole o link de uma playlist do Spotify.
+            </p>
           )}
         </div>
 
@@ -290,12 +290,12 @@ export default function App() {
 
       {settings.playlistUrl && (
         <a
-          href={settings.playlistUrl}
+          href={spotify?.webUrl ?? settings.playlistUrl}
           target="_blank"
           rel="noreferrer"
           className="mb-4 flex items-center justify-center gap-2 rounded-full bg-card px-4 py-3 text-sm text-muted-foreground transition active:scale-[0.99]"
         >
-          <Music size={16} className="text-spotify" /> Abrir playlist no Spotify
+          <Music size={16} className="text-spotify" /> Tocar playlist no Spotify
           <ExternalLink size={14} />
         </a>
       )}
