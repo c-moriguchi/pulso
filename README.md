@@ -49,16 +49,19 @@ Depois disso o Pulso abre em tela cheia, com ícone próprio, e funciona offline
 - `public/sw.js` — service worker: app shell em cache e navegação network-first.
 - `public/manifest.webmanifest` + ícones — é o que faz o app ser instalável.
 
-## Música
+## Música dentro do app
 
-O campo de playlist guarda o link e oferece um botão **Tocar** que abre a playlist no app do
-Spotify (toque único; o link é limpo, sem parâmetros de compartilhamento). A música roda por
-fora e o Pulso manda os sons por cima, inclusive durante o treino — há o mesmo atalho na tela
-de treino em andamento.
+O Pulso toca **arquivos de música do próprio celular**: no cartão "Música do celular" você
+escolhe os arquivos (MP3, M4A, WAV…), eles ficam guardados no aparelho (IndexedDB) e tocam
+dentro do app — inclusive durante o treino, com controles na tela de treino em andamento.
 
-Não há player embutido de propósito: o embed do Spotify toca apenas 30 s de prévia para quem
-não está logado no navegador, não funciona no app instalado no celular e **desaparece quando o
-treino começa** (a tela de treino não tem o iframe), o que fazia a música parar no pior momento.
+Como o app é dono do áudio, ele consegue **abaixar a música** automaticamente quando um sinal
+toca (vuvuzela, voz, bipe), e devolve o volume em seguida. Medido no build: a música vai de
+0,85 para 0,136 e volta — é isso que faz o aviso aparecer por cima.
+
+O Spotify não entra nessa conta: a API dele não permite que outro app controle a reprodução
+(seria preciso conta Premium + login, e não funciona no navegador do celular). O link da
+playlist, se existir, aparece como atalho opcional logo abaixo do cartão.
 
 ## Sons
 
@@ -90,6 +93,7 @@ instrumento toca primeiro e a palavra entra ~0,4 s depois, para não se atropela
   iPhone: voz padrão em pt-BR). Sem ela, os sons do instrumento continuam marcando tudo.
 - Som com o app **fechado** depende do sistema; o cronômetro continua certo, mas o
   gongo pode não tocar. A tela fica ligada durante o treino quando o navegador permite.
-- A playlist do Spotify precisa de internet e toca **no app do Spotify**, não dentro do Pulso.
+- As músicas escolhidas ficam no aparelho: funcionam offline e não precisam de conta. Ocupam
+  espaço do navegador (alguns navegadores limitam a ~50 MB a ~2 GB, dependendo do aparelho).
 - Ao publicar uma versão nova, aumente `VERSION` em `public/sw.js` para limpar os
   caches antigos no próximo acesso.

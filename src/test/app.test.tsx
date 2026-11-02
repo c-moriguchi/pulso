@@ -65,6 +65,15 @@ describe("tela inicial do Pulso", () => {
       expect(() => fireEvent.click(screen.getByRole("button", { name: rotulo }))).not.toThrow();
     }
   });
+
+  it("oferece escolher músicas do celular quando ainda não há nenhuma", () => {
+    render(<App />);
+    expect(screen.getByText("Música do celular")).toBeInTheDocument();
+    expect(screen.getByText(/Escolha músicas do celular/i)).toBeInTheDocument();
+    const seletor = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(seletor?.accept).toBe("audio/*");
+    expect(seletor?.multiple).toBe(true);
+  });
 });
 
 describe("treino em andamento", () => {

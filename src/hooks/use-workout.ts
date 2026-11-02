@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beep,
   cueFor,
+  duckMusic,
   FINISH_VOICE,
   haptic,
   playCue,
@@ -106,6 +107,7 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     if (status !== "running") return;
     if (position.finished) {
       setStatus("finished");
+      duckMusic(2200);
       playCue("vuvuzela");
       haptic([120, 80, 120]);
       announce(FINISH_VOICE, 500);
@@ -125,6 +127,8 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     const key = segmentKey(position.segment);
     if (lastSegment.current !== null && lastSegment.current !== key) {
       // Exercício: vuvuzela + "exercício". Pausa: tic-tac + "pausa".
+      // A música abaixa sozinha por um instante para o aviso passar.
+      duckMusic(1800);
       playCue(cueFor(position.segment.kind));
       announce(voiceFor(position.segment.kind));
       haptic(180);
@@ -136,6 +140,7 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     const secondsLeft = remainingSeconds(position.remaining);
     if (secondsLeft > 0 && secondsLeft <= 3 && lastBeepedSecond.current !== secondsLeft) {
       lastBeepedSecond.current = secondsLeft;
+      duckMusic(500);
       beep();
     }
   }, [status, position]);

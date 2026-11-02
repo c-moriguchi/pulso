@@ -9,16 +9,19 @@ import {
   Play,
   Plus,
   RotateCcw,
+  SkipBack,
+  SkipForward,
   Timer,
   Volume2,
   X,
   Zap,
 } from "lucide-react";
+import { useMusic } from "./hooks/use-music";
 import { useScreenWakeLock, useWorkout } from "./hooks/use-workout";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { playCue, speak, unlockAudio } from "./lib/audio";
 import { LIMITS, loadSettings, saveSettings, type Settings } from "./lib/settings";
-import { looksLikeSpotify, parseSpotifyLink } from "./lib/spotify";
+import { parseSpotifyLink } from "./lib/spotify";
 import { formatDuration } from "./lib/workout";
 
 const TABATA = { workSeconds: 20, restSeconds: 10, rounds: 8 };
@@ -85,6 +88,7 @@ export default function App() {
   });
 
   const workout = useWorkout(settings);
+  const music = useMusic();
   const { status, position, plan } = workout;
 
   useScreenWakeLock(status === "running" || status === "paused");
@@ -166,33 +170,65 @@ export default function App() {
 
         <div className="mt-3 rounded-2xl bg-card p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <label htmlFor="playlist" className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Music size={16} className="text-spotify" /> Playlist do Spotify
-            </label>
-            {spotify && (
-              <a
-                href={spotify.webUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-semibold transition active:scale-95"
-              >
-                <Play size={11} fill="currentColor" className="text-spotify" /> Tocar
-              </a>
-            )}
-          </div>
-          <input
-            id="playlist"
-            value={settings.playlistUrl}
-            onChange={(event) => update("playlistUrl", event.target.value)}
-            placeholder="Cole o link da playlist"
-            inputMode="url"
-            autoComplete="off"
-            className="w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          {settings.playlistUrl && !spotify && !looksLikeSpotify(settings.playlistUrl) && (
-            <p className="mt-2 text-xs text-destructive">
-              Link inválido — cole o link de uma playlist do Spotify.
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Music size={16} className="text-spotify" /> Música do celular
             </p>
+            <label className="shrink-0 cursor-pointer rounded-full bg-secondary px-3 py-1 text-xs font-semibold transition active:scale-95">
+              {music.tracks.length ? "Trocar" : "Escolher"}
+              <input
+                type="file"
+                accept="audio/*"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                  const files = event.target.files;
+                  if (files && files.length > 0) void music.add(files);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {music.tracks.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={music.playing ? "Pausar música" : "Tocar música"}
+                onClick={music.toggle}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition active:scale-95"
+              >
+                {music.playing ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{music.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {music.tracks.length} {music.tracks.length === 1 ? "música" : "músicas"} · abaixa no sinal
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Próxima música"
+                onClick={music.next}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary transition active:scale-95"
+              >
+                <SkipForward size={15} />
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Escolha músicas do celular: tocam dentro do app e abaixam sozinhas na hora do sinal.
+            </p>
+          )}
+
+          {spotify && (
+            <a
+              href={spotify.webUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              ou tocar a playlist no Spotify <ExternalLink size={11} />
+            </a>
           )}
         </div>
 
@@ -219,7 +255,10 @@ export default function App() {
 
         <button
           type="button"
-          onClick={workout.start}
+          onClick={() => {
+            workout.start();
+            if (music.tracks.length > 0 && !music.playing) music.toggle();
+          }}
           className="mt-5 flex h-16 items-center justify-center gap-2 rounded-full bg-primary text-lg font-bold text-primary-foreground transition active:scale-[0.98]"
         >
           <Play size={22} fill="currentColor" /> Começar
@@ -288,16 +327,34 @@ export default function App() {
         </div>
       </div>
 
-      {settings.playlistUrl && (
-        <a
-          href={spotify?.webUrl ?? settings.playlistUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mb-4 flex items-center justify-center gap-2 rounded-full bg-card px-4 py-3 text-sm text-muted-foreground transition active:scale-[0.99]"
-        >
-          <Music size={16} className="text-spotify" /> Tocar playlist no Spotify
-          <ExternalLink size={14} />
-        </a>
+      {music.tracks.length > 0 && (
+        <div className="mb-4 flex items-center gap-2 rounded-2xl bg-card px-2 py-2">
+          <button
+            type="button"
+            aria-label="Música anterior"
+            onClick={music.previous}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary transition active:scale-95"
+          >
+            <SkipBack size={15} />
+          </button>
+          <button
+            type="button"
+            aria-label={music.playing ? "Pausar música" : "Tocar música"}
+            onClick={music.toggle}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition active:scale-95"
+          >
+            {music.playing ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+          </button>
+          <button
+            type="button"
+            aria-label="Próxima música"
+            onClick={music.next}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary transition active:scale-95"
+          >
+            <SkipForward size={15} />
+          </button>
+          <p className="min-w-0 flex-1 truncate pl-1 text-xs text-muted-foreground">{music.title}</p>
+        </div>
       )}
 
       <div className="flex justify-center gap-4">

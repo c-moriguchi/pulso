@@ -298,6 +298,49 @@ export function speak(line: string): void {
   }
 }
 
+/* ───────────────────────────── música do celular ───────────────────────────── */
+
+let musicGain: GainNode | null = null;
+let musicLevel = 0.85;
+
+/**
+ * Conecta o elemento de música ao mesmo AudioContext, para poder abaixá-lo na
+ * hora do sinal. Vai direto na saída (não passa pelo limitador dos sinais, senão
+ * a música seria "bombeada" a cada aviso).
+ */
+export function connectMusic(element: HTMLAudioElement): GainNode | null {
+  if (musicGain) return musicGain;
+  const audio = engine();
+  if (!audio) return null;
+  try {
+    const source = audio.ctx.createMediaElementSource(element);
+    const gain = audio.ctx.createGain();
+    gain.gain.value = musicLevel;
+    source.connect(gain);
+    gain.connect(audio.ctx.destination);
+    musicGain = gain;
+    return gain;
+  } catch {
+    // Navegador recusou conectar: a música toca direto, só não abaixa no sinal.
+    return null;
+  }
+}
+
+/** Abaixa a música por um instante, para o aviso (vuvuzela, voz, bipe) aparecer. */
+export function duckMusic(holdMs = 1600): void {
+  const audio = engine();
+  if (!audio || !musicGain) return;
+  const now = audio.ctx.currentTime;
+  const gain = musicGain.gain;
+  const low = musicLevel * 0.16;
+  const holdEnd = now + 0.12 + holdMs / 1000;
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(gain.value, now);
+  gain.linearRampToValueAtTime(low, now + 0.12);
+  gain.setValueAtTime(low, holdEnd);
+  gain.linearRampToValueAtTime(musicLevel, holdEnd + 0.45);
+}
+
 /**
  * Vibração como reforço (Android). O iOS não expõe a API; a chamada é ignorada.
  */
