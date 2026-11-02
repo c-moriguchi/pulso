@@ -10,12 +10,13 @@ import {
   Plus,
   RotateCcw,
   Timer,
+  Volume2,
   X,
   Zap,
 } from "lucide-react";
 import { useScreenWakeLock, useWorkout } from "./hooks/use-workout";
 import { InstallPrompt } from "./components/InstallPrompt";
-import { playCue, unlockAudio } from "./lib/audio";
+import { playCue, speak, unlockAudio } from "./lib/audio";
 import { LIMITS, loadSettings, saveSettings, type Settings } from "./lib/settings";
 import { formatDuration } from "./lib/workout";
 
@@ -195,27 +196,25 @@ export default function App() {
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              unlockAudio();
-              playCue("trumpet");
-            }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
-          >
-            <Megaphone size={14} className="text-primary" /> Ouvir trombeta
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              unlockAudio();
-              playCue("tick-tock");
-            }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
-          >
-            <Timer size={14} className="text-rest" /> Ouvir tic-tac
-          </button>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {[
+            { rotulo: "Vuvuzela", icone: <Megaphone size={14} className="text-primary" />, acao: () => playCue("vuvuzela") },
+            { rotulo: "Tic-tac", icone: <Timer size={14} className="text-rest" />, acao: () => playCue("tick-tock") },
+            { rotulo: "Voz", icone: <Volume2 size={14} className="text-accent" />, acao: () => speak("Exercício") },
+          ].map(({ rotulo, icone, acao }) => (
+            <button
+              key={rotulo}
+              type="button"
+              aria-label={`Ouvir ${rotulo}`}
+              onClick={() => {
+                unlockAudio();
+                acao();
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-full bg-card px-2 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
+            >
+              {icone} {rotulo}
+            </button>
+          ))}
         </div>
 
         <button

@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { beep, cueFor, fanfare, haptic, playCue, unlockAudio } from "../lib/audio";
+import {
+  beep,
+  cueFor,
+  FINISH_VOICE,
+  haptic,
+  playCue,
+  speak,
+  unlockAudio,
+  voiceFor,
+} from "../lib/audio";
 import {
   buildPlan,
   formatClock,
@@ -81,17 +90,29 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     };
   }, [status, tick]);
 
+  // Voz atrasada de propósito: primeiro o instrumento chama atenção, depois a
+  // palavra ("exercício", "pausa", "fim") fica inteligível.
+  const voiceTimer = useRef<number | null>(null);
+  const announce = useCallback((line: string, delayMs = 420) => {
+    if (voiceTimer.current !== null) window.clearTimeout(voiceTimer.current);
+    voiceTimer.current = window.setTimeout(() => {
+      voiceTimer.current = null;
+      speak(line);
+    }, delayMs);
+  }, []);
+
   // Fim do treino.
   useEffect(() => {
     if (status !== "running") return;
     if (position.finished) {
       setStatus("finished");
-      fanfare();
+      playCue("vuvuzela");
       haptic([120, 80, 120]);
+      announce(FINISH_VOICE, 500);
     }
-  }, [status, position.finished]);
+  }, [status, position.finished, announce]);
 
-  // Sons de fase: trombeta na troca, bipe nos últimos 3 segundos.
+  // Sons de fase: vuvuzela + voz na troca, bipe nos últimos 3 segundos.
   const lastSegment = useRef<string | null>(null);
   const lastBeepedSecond = useRef<number | null>(null);
 
@@ -103,8 +124,9 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     }
     const key = segmentKey(position.segment);
     if (lastSegment.current !== null && lastSegment.current !== key) {
-      // Gongo ao entrar em exercício; tic-tac de cronômetro ao entrar na pausa.
+      // Exercício: vuvuzela + "exercício". Pausa: tic-tac + "pausa".
       playCue(cueFor(position.segment.kind));
+      announce(voiceFor(position.segment.kind));
       haptic(180);
       lastBeepedSecond.current = null;
     }
@@ -149,8 +171,20 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     pausedAt.current = null;
     lastSegment.current = null;
     lastBeepedSecond.current = null;
+    // Um "fim" agendado não pode falar depois de a pessoa sair do treino.
+    if (voiceTimer.current !== null) window.clearTimeout(voiceTimer.current);
+    voiceTimer.current = null;
     setStatus("idle");
   }, []);
+
+  // Encerrar o app no meio do treino também não deve deixar voz pendente.
+  useEffect(
+    () => () => {
+      if (voiceTimer.current !== null) window.clearTimeout(voiceTimer.current);
+      voiceTimer.current = null;
+    },
+    [],
+  );
 
   const clock =
     status === "idle"

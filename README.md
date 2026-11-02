@@ -51,15 +51,22 @@ Depois disso o Pulso abre em tela cheia, com ícone próprio, e funciona offline
 
 ## Sons
 
-- **Fanfarra de trombeta** (dó–mi–sol subindo) ao começar/retomar o exercício e no fim.
-- **Tic-tac de cronômetro** ao entrar na pausa.
-- **Bipe agudo** nos 3, 2, 1 antes de cada troca, mais vibração no celular (Android).
-- Botões **Ouvir trombeta** / **Ouvir tic-tac** na tela inicial para conferir antes.
+| Momento | O que toca |
+|---|---|
+| Exercício começa / nova rodada | **Vuvuzela** + voz dizendo **"Exercício"** |
+| Pausa começa | **Tic-tac de cronômetro** + voz dizendo **"Pausa"** |
+| 3, 2, 1 antes de cada troca | Bipe agudo |
+| Fim do treino | **Vuvuzela** + voz dizendo **"Fim"** |
 
-A trombeta é sintetizada: duas ondas serradas levemente desafinadas (efeito de naipe),
-"esticada" de afinação na entrada, filtro que abre no ataque e fecha no sustento (o
-"blat"), vibrato que entra depois e realce de 2–4 kHz. Tudo passa por um limitador para
-tocar no teto sem distorcer. Medido no build: pico em −1,7 dBFS, 0 amostras em clipping.
+Botões **Vuvuzela**, **Tic-tac** e **Voz** na tela inicial para conferir antes do treino.
+
+A vuvuzela é sintetizada: fundamental grave (~233 Hz) com a oitava junto, duas ondas
+desafinadas batendo entre si (efeito de arquibancada), saturação por `WaveShaper` para o
+timbre rasgado e uma modulação rápida que imita a vibração do plástico. Tudo passa por um
+limitador: medido no build, pico em −1,9 dBFS e 0 amostras em clipping.
+
+A voz vem do `speechSynthesis` do próprio aparelho (não é áudio do app), em pt-BR. O
+instrumento toca primeiro e a palavra entra ~0,4 s depois, para não se atropelarem.
 
 ## Limites conhecidos
 
@@ -68,6 +75,8 @@ tocar no teto sem distorcer. Medido no build: pico em −1,7 dBFS, 0 amostras em
   atravessar a mixagem — se ainda ficar abafado, aumente o volume do celular: o
   sinal está no teto e sobe junto.
 - No iPhone, o botão lateral de **silencioso** pode calar os sons do Safari.
+- A voz depende de o celular ter uma voz em português instalada (Android: Google TTS;
+  iPhone: voz padrão em pt-BR). Sem ela, os sons do instrumento continuam marcando tudo.
 - Som com o app **fechado** depende do sistema; o cronômetro continua certo, mas o
   gongo pode não tocar. A tela fica ligada durante o treino quando o navegador permite.
 - A playlist do Spotify precisa de internet; o resto do app não.

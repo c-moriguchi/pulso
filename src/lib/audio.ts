@@ -3,15 +3,18 @@
  *
  * Objetivo: o sinal tem de ser percebido **por cima da música**. O app não tem
  * como abaixar o áudio de outro app (Spotify roda fora dele), então o caminho é
- * outra coisa: ataque curto e agudo (2–4 kHz, faixa que o ouvido separa melhor da
- * música), transientes de ruído para "furar" a mixagem e um limitador no fim da
- * cadeia para tocar no volume máximo sem distorcer.
+ * outro: timbre rasgado e denso (vuvuzela), estalos agudos (2–4 kHz, faixa que o
+ * ouvido separa melhor da música) e um limitador no fim da cadeia para tocar no
+ * volume máximo sem distorcer.
+ *
+ * A voz das trocas ("exercício", "pausa", "fim") sai pelo `speechSynthesis` do
+ * próprio aparelho — é a voz do sistema, em pt-BR, e não passa pelo limitador.
  *
  * O contexto precisa ser criado/retomado dentro de um gesto do usuário, por isso
  * `unlockAudio()` é chamado no toque em "Começar" e nos botões de ouvir os sons.
  */
 
-export type Cue = "trumpet" | "tick-tock";
+export type Cue = "vuvuzela" | "tick-tock";
 
 let ctx: AudioContext | null = null;
 let out: GainNode | null = null;
@@ -47,6 +50,7 @@ function engine(): { ctx: AudioContext; out: GainNode } | null {
 
 export function unlockAudio(): void {
   engine();
+  warmUpVoices();
 }
 
 /** Ruído branco curto reaproveitado nos transientes (ataque que "corta" a música). */
@@ -117,101 +121,89 @@ export function beep(): void {
   click(audio.ctx, audio.out, 3200, 0.6, 0.03, now);
 }
 
-/** Fanfarra de trombeta: três notas subindo (dó–mi–sol), som de "vai!". */
-export function fanfare(): void {
-  const audio = engine();
-  if (!audio) return;
-  const start = audio.ctx.currentTime + 0.01;
-
-  const notes: Array<[number, number, number]> = [
-    [523.25, 0, 0.18], // dó5
-    [659.25, 0.18, 0.18], // mi5
-    [783.99, 0.36, 0.5], // sol5, sustentado
-  ];
-  for (const [frequency, at, duration] of notes) {
-    trumpetNote(audio.ctx, audio.out, frequency, start + at, duration);
+/** Curva de saturação: é o que dá o timbre "rasgado" da vuvuzela. */
+function saturation(amount: number): Float32Array<ArrayBuffer> {
+  const samples = 1024;
+  const curve = new Float32Array(samples);
+  for (let index = 0; index < samples; index++) {
+    const x = (index * 2) / samples - 1;
+    curve[index] = Math.tanh(x * amount);
   }
-
-  // Um estalo agudo no primeiro ataque: ajuda a furar a música no momento em que
-  // a pessoa precisa olhar o relógio.
-  click(audio.ctx, audio.out, 3000, 0.45, 0.03, start);
+  return curve;
 }
 
 /**
- * Uma nota de trombeta.
+ * Vuvuzela: uma nota só, densa e rasgada.
  *
- * O que faz soar como metal e não como sintetizador: duas serras levemente
- * desafinadas (efeito de naipe), "scoop" de afinação na entrada, filtro que abre
- * no ataque e fecha no sustento (o "blat"), vibrato que só entra depois, e um
- * formante em ~1,8 kHz — a faixa que dá brilho e atravessa a mixagem.
+ * O que faz soar como vuvuzela e não como buzina de sintetizador: fundamental
+ * grave (si bemol 3, ~233 Hz) com oitava junto, duas ondas levemente desafinadas
+ * batendo entre si (o "coro" de arquibancada), saturação por `WaveShaper` para o
+ * timbre rasgado, sopro inicial de ~80 ms e uma modulação rápida de amplitude que
+ * imita a vibração do plástico.
  */
-function trumpetNote(
-  context: AudioContext,
-  target: GainNode,
-  frequency: number,
-  at: number,
-  duration: number,
-): void {
+export function vuvuzela(): void {
+  const audio = engine();
+  if (!audio) return;
+  const { ctx: context, out: target } = audio;
+  const at = context.currentTime + 0.01;
+  const duration = 0.8;
   const end = at + duration;
 
-  const oscA = context.createOscillator();
-  const oscB = context.createOscillator();
-  oscA.type = "sawtooth";
-  oscB.type = "sawtooth";
-  for (const osc of [oscA, oscB]) {
-    osc.frequency.setValueAtTime(frequency * 0.94, at);
-    osc.frequency.exponentialRampToValueAtTime(frequency, at + 0.045);
-  }
-  oscB.frequency.exponentialRampToValueAtTime(frequency * 1.004, at + 0.045);
+  const shaper = context.createWaveShaper();
+  shaper.curve = saturation(6);
+  shaper.oversample = "2x";
 
-  // Vibrato com profundidade crescendo: entrada firme, cauda "cantada".
-  const vibrato = context.createOscillator();
-  vibrato.frequency.value = 5.2;
-  const vibratoDepth = context.createGain();
-  vibratoDepth.gain.setValueAtTime(0, at);
-  vibratoDepth.gain.linearRampToValueAtTime(frequency * 0.006, at + 0.22);
-  vibrato.connect(vibratoDepth);
-  vibratoDepth.connect(oscA.frequency);
-  vibratoDepth.connect(oscB.frequency);
+  const highpass = context.createBiquadFilter();
+  highpass.type = "highpass";
+  highpass.frequency.value = 150;
 
-  const body = context.createBiquadFilter();
-  body.type = "lowpass";
-  body.Q.value = 1.6;
-  body.frequency.setValueAtTime(frequency * 2.2, at);
-  body.frequency.exponentialRampToValueAtTime(Math.min(frequency * 8, 9000), at + 0.05);
-  body.frequency.exponentialRampToValueAtTime(frequency * 4, end);
-
-  // Brilho de metal: realça 2–4 kHz, a faixa que o ouvido separa da música.
-  // (Filtro passa-faixa não serve aqui: ele não cria harmônico que a nota não tem.)
-  const brilliance = context.createBiquadFilter();
-  brilliance.type = "highshelf";
-  brilliance.frequency.value = 2200;
-  brilliance.gain.value = 5;
+  const lowpass = context.createBiquadFilter();
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 3800;
+  lowpass.Q.value = 0.9;
 
   const amp = context.createGain();
-  envelope(amp.gain, at, 0.52, end);
+  amp.gain.setValueAtTime(0.0001, at);
+  amp.gain.exponentialRampToValueAtTime(0.3, at + 0.08);
+  amp.gain.setValueAtTime(0.3, end - 0.15);
+  amp.gain.exponentialRampToValueAtTime(0.0001, end);
 
-  oscA.connect(body);
-  oscB.connect(body);
-  body.connect(brilliance);
-  brilliance.connect(amp);
+  // Vibração do plástico: modulação de amplitude rápida e rasa.
+  const rasp = context.createOscillator();
+  rasp.frequency.value = 31;
+  const raspDepth = context.createGain();
+  raspDepth.gain.value = 0.05;
+  rasp.connect(raspDepth);
+  raspDepth.connect(amp.gain);
+
+  const voices: Array<[number, number]> = [
+    [233, 0.5],
+    [236.5, 0.5], // bate ~3,5 Hz com a anterior: efeito de várias vuvuzelas
+    [466, 0.22],
+    [116.5, 0.12],
+  ];
+
+  const started: OscillatorNode[] = [rasp];
+  for (const [frequency, level] of voices) {
+    const osc = context.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = frequency;
+    const gain = context.createGain();
+    gain.gain.value = level;
+    osc.connect(gain);
+    gain.connect(shaper);
+    started.push(osc);
+  }
+
+  shaper.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(amp);
   amp.connect(target);
 
-  for (const node of [oscA, oscB, vibrato]) {
+  for (const node of started) {
     node.start(at);
-    node.stop(end + 0.08);
+    node.stop(end + 0.05);
   }
-}
-
-/** Ataque rápido + queda para o sustento + corte curto (jeito de metal, não de sino). */
-function envelope(param: AudioParam, at: number, peak: number, end: number): void {
-  const sustain = at + 0.11;
-  const release = Math.max(sustain, end - 0.04);
-  param.setValueAtTime(0.0001, at);
-  param.exponentialRampToValueAtTime(peak, at + 0.025);
-  param.exponentialRampToValueAtTime(peak * 0.62, sustain);
-  param.setValueAtTime(peak * 0.62, release);
-  param.exponentialRampToValueAtTime(0.0001, end + 0.06);
 }
 
 /** Tic-tac de cronômetro (pausa): quatro estalos alternados, timbre de relógio. */
@@ -230,12 +222,80 @@ export function tickTock(): void {
 
 /** Qual som marca a troca para esta fase. */
 export function cueFor(phase: "prepare" | "work" | "rest"): Cue {
-  return phase === "rest" ? "tick-tock" : "trumpet";
+  return phase === "rest" ? "tick-tock" : "vuvuzela";
 }
 
 export function playCue(cue: Cue): void {
   if (cue === "tick-tock") tickTock();
-  else fanfare();
+  else vuvuzela();
+}
+
+/* ───────────────────────────── voz das trocas ───────────────────────────── */
+
+/** O que a voz fala em cada fase. */
+export function voiceFor(phase: "prepare" | "work" | "rest"): string {
+  return phase === "rest" ? "Pausa" : "Exercício";
+}
+
+export const FINISH_VOICE = "Fim";
+
+let cachedVoice: SpeechSynthesisVoice | null = null;
+
+function speech(): SpeechSynthesis | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  return window.speechSynthesis;
+}
+
+/** Melhor voz portuguesa disponível no aparelho (prefere pt-BR e voz local, que funciona offline). */
+function ptVoice(synth: SpeechSynthesis): SpeechSynthesisVoice | null {
+  if (cachedVoice) return cachedVoice;
+  const voices = synth.getVoices();
+  if (voices.length === 0) return null; // ainda carregando: fala com a voz padrão
+  const portuguese = voices.filter((voice) => voice.lang.toLowerCase().startsWith("pt"));
+  cachedVoice =
+    portuguese.find((voice) => voice.lang.toLowerCase().replace("_", "-").startsWith("pt-br") && voice.localService) ??
+    portuguese.find((voice) => voice.lang.toLowerCase().replace("_", "-").startsWith("pt-br")) ??
+    portuguese[0] ??
+    null;
+  return cachedVoice;
+}
+
+/**
+ * Aquece a síntese de voz dentro do gesto do usuário.
+ * Sem isso, alguns navegadores (iOS em especial) recusam falar depois, quando a
+ * fala é disparada por um timer e não por um toque.
+ */
+export function warmUpVoices(): void {
+  const synth = speech();
+  if (!synth) return;
+  ptVoice(synth); // dispara o carregamento da lista
+  if (typeof SpeechSynthesisUtterance === "undefined") return;
+  const silent = new SpeechSynthesisUtterance(" ");
+  silent.volume = 0;
+  silent.lang = "pt-BR";
+  try {
+    synth.speak(silent);
+  } catch {
+    // Sem vozes instaladas: o som do instrumento continua marcando a troca.
+  }
+}
+
+export function speak(line: string): void {
+  const synth = speech();
+  if (!synth || typeof SpeechSynthesisUtterance === "undefined") return;
+  try {
+    synth.cancel(); // um aviso novo substitui o anterior em vez de enfileirar
+    const utterance = new SpeechSynthesisUtterance(line);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1.05;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    const voice = ptVoice(synth);
+    if (voice) utterance.voice = voice;
+    synth.speak(utterance);
+  } catch {
+    // Aparelho sem voz pt-BR: o instrumento já sinalizou a troca.
+  }
 }
 
 /**
