@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { beep, cueFor, gong, haptic, playCue, unlockAudio } from "../lib/audio";
+import { beep, cueFor, fanfare, haptic, playCue, unlockAudio } from "../lib/audio";
 import {
   buildPlan,
   formatClock,
@@ -86,12 +86,12 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     if (status !== "running") return;
     if (position.finished) {
       setStatus("finished");
-      gong();
+      fanfare();
       haptic([120, 80, 120]);
     }
   }, [status, position.finished]);
 
-  // Sons de fase: gongo na troca, bipe nos últimos 3 segundos.
+  // Sons de fase: trombeta na troca, bipe nos últimos 3 segundos.
   const lastSegment = useRef<string | null>(null);
   const lastBeepedSecond = useRef<number | null>(null);
 

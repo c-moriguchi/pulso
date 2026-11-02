@@ -51,14 +51,15 @@ Depois disso o Pulso abre em tela cheia, com ícone próprio, e funciona offline
 
 ## Sons
 
-- **Gongo** ao começar/retomar o exercício e no fim do treino.
+- **Fanfarra de trombeta** (dó–mi–sol subindo) ao começar/retomar o exercício e no fim.
 - **Tic-tac de cronômetro** ao entrar na pausa.
 - **Bipe agudo** nos 3, 2, 1 antes de cada troca, mais vibração no celular (Android).
-- Botões **Ouvir gongo** / **Ouvir tic-tac** na tela inicial para conferir antes.
+- Botões **Ouvir trombeta** / **Ouvir tic-tac** na tela inicial para conferir antes.
 
-O som é gerado com ataque curto e agudo (2–4 kHz) e passa por um limitador, para
-ser percebido por cima da música. Medido no build: pico em −1,4 dBFS e 0 amostras
-em clipping — ou seja, tocando no teto do volume sem distorcer.
+A trombeta é sintetizada: duas ondas serradas levemente desafinadas (efeito de naipe),
+"esticada" de afinação na entrada, filtro que abre no ataque e fecha no sustento (o
+"blat"), vibrato que entra depois e realce de 2–4 kHz. Tudo passa por um limitador para
+tocar no teto sem distorcer. Medido no build: pico em −1,7 dBFS, 0 amostras em clipping.
 
 ## Limites conhecidos
 

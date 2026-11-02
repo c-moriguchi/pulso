@@ -59,9 +59,9 @@ describe("tela inicial do Pulso", () => {
     expect(localStorage.getItem("pulso.install-dismissed")).toBe("1");
   });
 
-  it("deixa ouvir o gongo e o tic-tac antes de começar", () => {
+  it("deixa ouvir a trombeta e o tic-tac antes de começar", () => {
     render(<App />);
-    expect(() => fireEvent.click(screen.getByRole("button", { name: /Ouvir gongo/i }))).not.toThrow();
+    expect(() => fireEvent.click(screen.getByRole("button", { name: /Ouvir trombeta/i }))).not.toThrow();
     expect(() => fireEvent.click(screen.getByRole("button", { name: /Ouvir tic-tac/i }))).not.toThrow();
   });
 });

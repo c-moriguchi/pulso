@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bell,
+  Megaphone,
   Check,
   ExternalLink,
   Minus,
@@ -200,11 +200,11 @@ export default function App() {
             type="button"
             onClick={() => {
               unlockAudio();
-              playCue("gong");
+              playCue("trumpet");
             }}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
           >
-            <Bell size={14} className="text-primary" /> Ouvir gongo
+            <Megaphone size={14} className="text-primary" /> Ouvir trombeta
           </button>
           <button
             type="button"

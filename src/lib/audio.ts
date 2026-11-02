@@ -11,7 +11,7 @@
  * `unlockAudio()` é chamado no toque em "Começar" e nos botões de ouvir os sons.
  */
 
-export type Cue = "gong" | "tick-tock";
+export type Cue = "trumpet" | "tick-tock";
 
 let ctx: AudioContext | null = null;
 let out: GainNode | null = null;
@@ -27,10 +27,10 @@ function engine(): { ctx: AudioContext; out: GainNode } | null {
     if (!Ctor) return null;
     const context = new Ctor();
     const limiter = context.createDynamicsCompressor();
-    limiter.threshold.value = -8;
+    limiter.threshold.value = -10;
     limiter.knee.value = 0;
     limiter.ratio.value = 20;
-    limiter.attack.value = 0.002;
+    limiter.attack.value = 0.001;
     limiter.release.value = 0.15;
     const master = context.createGain();
     // Acima de 1.0 de propósito: o limitador logo depois segura o pico sem
@@ -117,27 +117,101 @@ export function beep(): void {
   click(audio.ctx, audio.out, 3200, 0.6, 0.03, now);
 }
 
-/** Gongo de troca de fase: corpo grave + harmônicos + estalo agudo de ataque. */
-export function gong(): void {
+/** Fanfarra de trombeta: três notas subindo (dó–mi–sol), som de "vai!". */
+export function fanfare(): void {
   const audio = engine();
   if (!audio) return;
-  const now = audio.ctx.currentTime;
+  const start = audio.ctx.currentTime + 0.01;
 
-  // Corpo do sino (dá o "peso") e harmônicos altos (dão o corte na mixagem).
-  const partials: Array<[number, number, number]> = [
-    [98, 0.34, 3.0],
-    [196.5, 0.26, 2.6],
-    [294, 0.18, 2.2],
-    [587, 0.15, 1.7],
-    [1174, 0.12, 1.1],
+  const notes: Array<[number, number, number]> = [
+    [523.25, 0, 0.18], // dó5
+    [659.25, 0.18, 0.18], // mi5
+    [783.99, 0.36, 0.5], // sol5, sustentado
   ];
-  for (const [frequency, peak, decay] of partials) {
-    partial(audio.ctx, audio.out, frequency, peak, decay, now);
+  for (const [frequency, at, duration] of notes) {
+    trumpetNote(audio.ctx, audio.out, frequency, start + at, duration);
   }
 
-  // Ataque: é isso que faz o som aparecer por cima da música.
-  click(audio.ctx, audio.out, 2600, 0.85, 0.06, now);
-  click(audio.ctx, audio.out, 3800, 0.6, 0.04, now);
+  // Um estalo agudo no primeiro ataque: ajuda a furar a música no momento em que
+  // a pessoa precisa olhar o relógio.
+  click(audio.ctx, audio.out, 3000, 0.45, 0.03, start);
+}
+
+/**
+ * Uma nota de trombeta.
+ *
+ * O que faz soar como metal e não como sintetizador: duas serras levemente
+ * desafinadas (efeito de naipe), "scoop" de afinação na entrada, filtro que abre
+ * no ataque e fecha no sustento (o "blat"), vibrato que só entra depois, e um
+ * formante em ~1,8 kHz — a faixa que dá brilho e atravessa a mixagem.
+ */
+function trumpetNote(
+  context: AudioContext,
+  target: GainNode,
+  frequency: number,
+  at: number,
+  duration: number,
+): void {
+  const end = at + duration;
+
+  const oscA = context.createOscillator();
+  const oscB = context.createOscillator();
+  oscA.type = "sawtooth";
+  oscB.type = "sawtooth";
+  for (const osc of [oscA, oscB]) {
+    osc.frequency.setValueAtTime(frequency * 0.94, at);
+    osc.frequency.exponentialRampToValueAtTime(frequency, at + 0.045);
+  }
+  oscB.frequency.exponentialRampToValueAtTime(frequency * 1.004, at + 0.045);
+
+  // Vibrato com profundidade crescendo: entrada firme, cauda "cantada".
+  const vibrato = context.createOscillator();
+  vibrato.frequency.value = 5.2;
+  const vibratoDepth = context.createGain();
+  vibratoDepth.gain.setValueAtTime(0, at);
+  vibratoDepth.gain.linearRampToValueAtTime(frequency * 0.006, at + 0.22);
+  vibrato.connect(vibratoDepth);
+  vibratoDepth.connect(oscA.frequency);
+  vibratoDepth.connect(oscB.frequency);
+
+  const body = context.createBiquadFilter();
+  body.type = "lowpass";
+  body.Q.value = 1.6;
+  body.frequency.setValueAtTime(frequency * 2.2, at);
+  body.frequency.exponentialRampToValueAtTime(Math.min(frequency * 8, 9000), at + 0.05);
+  body.frequency.exponentialRampToValueAtTime(frequency * 4, end);
+
+  // Brilho de metal: realça 2–4 kHz, a faixa que o ouvido separa da música.
+  // (Filtro passa-faixa não serve aqui: ele não cria harmônico que a nota não tem.)
+  const brilliance = context.createBiquadFilter();
+  brilliance.type = "highshelf";
+  brilliance.frequency.value = 2200;
+  brilliance.gain.value = 5;
+
+  const amp = context.createGain();
+  envelope(amp.gain, at, 0.52, end);
+
+  oscA.connect(body);
+  oscB.connect(body);
+  body.connect(brilliance);
+  brilliance.connect(amp);
+  amp.connect(target);
+
+  for (const node of [oscA, oscB, vibrato]) {
+    node.start(at);
+    node.stop(end + 0.08);
+  }
+}
+
+/** Ataque rápido + queda para o sustento + corte curto (jeito de metal, não de sino). */
+function envelope(param: AudioParam, at: number, peak: number, end: number): void {
+  const sustain = at + 0.11;
+  const release = Math.max(sustain, end - 0.04);
+  param.setValueAtTime(0.0001, at);
+  param.exponentialRampToValueAtTime(peak, at + 0.025);
+  param.exponentialRampToValueAtTime(peak * 0.62, sustain);
+  param.setValueAtTime(peak * 0.62, release);
+  param.exponentialRampToValueAtTime(0.0001, end + 0.06);
 }
 
 /** Tic-tac de cronômetro (pausa): quatro estalos alternados, timbre de relógio. */
@@ -156,12 +230,12 @@ export function tickTock(): void {
 
 /** Qual som marca a troca para esta fase. */
 export function cueFor(phase: "prepare" | "work" | "rest"): Cue {
-  return phase === "rest" ? "tick-tock" : "gong";
+  return phase === "rest" ? "tick-tock" : "trumpet";
 }
 
 export function playCue(cue: Cue): void {
   if (cue === "tick-tock") tickTock();
-  else gong();
+  else fanfare();
 }
 
 /**
