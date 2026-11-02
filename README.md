@@ -74,10 +74,12 @@ playlist, se existir, aparece como atalho opcional logo abaixo do cartão.
 
 Botões **Vuvuzela**, **Tic-tac** e **Voz** na tela inicial para conferir antes do treino.
 
-A vuvuzela é sintetizada: fundamental grave (~233 Hz) com a oitava junto, duas ondas
-desafinadas batendo entre si (efeito de arquibancada), saturação por `WaveShaper` para o
-timbre rasgado e uma modulação rápida que imita a vibração do plástico. Tudo passa por um
-limitador: medido no build, pico em −1,9 dBFS e 0 amostras em clipping.
+A vuvuzela é sintetizada: fundamental em **415 Hz** (a de plástico de verdade fica em ~233 Hz,
+mas aqui ela ficava abafada pela música), duas ondas desafinadas batendo entre si (efeito de
+arquibancada), saturação por `WaveShaper` para o timbre rasgado e uma modulação rápida que
+imita a vibração do plástico. A afinação é uma constante única: `VUVUZELA_PITCH` em
+`src/lib/audio.ts`. Medido no build: centro espectral em **1.213 Hz** (era 412 Hz), pico em
+−2,2 dBFS e 0 amostras em clipping.
 
 A voz vem do `speechSynthesis` do próprio aparelho (não é áudio do app), em pt-BR. O
 instrumento toca primeiro e a palavra entra ~0,4 s depois, para não se atropelarem.

@@ -121,6 +121,14 @@ export function beep(): void {
   click(audio.ctx, audio.out, 3200, 0.6, 0.03, now);
 }
 
+/**
+ * Altura da vuvuzela, em Hz.
+ * Referência: uma vuvuzela de plástico soa perto de 233 Hz (si bemol 3), mas aqui
+ * ela ficava abafada pela música — 415 Hz (sol sustenido 4) atravessa sem virar
+ * apito. Subir além de ~600 Hz começa a soar como mosquito.
+ */
+const VUVUZELA_PITCH = 415;
+
 /** Curva de saturação: é o que dá o timbre "rasgado" da vuvuzela. */
 function saturation(amount: number): Float32Array<ArrayBuffer> {
   const samples = 1024;
@@ -155,12 +163,12 @@ export function vuvuzela(): void {
 
   const highpass = context.createBiquadFilter();
   highpass.type = "highpass";
-  highpass.frequency.value = 150;
+  highpass.frequency.value = 260;
 
   const lowpass = context.createBiquadFilter();
   lowpass.type = "lowpass";
-  lowpass.frequency.value = 3800;
-  lowpass.Q.value = 0.9;
+  lowpass.frequency.value = 5600;
+  lowpass.Q.value = 0.8;
 
   const amp = context.createGain();
   amp.gain.setValueAtTime(0.0001, at);
@@ -177,10 +185,9 @@ export function vuvuzela(): void {
   raspDepth.connect(amp.gain);
 
   const voices: Array<[number, number]> = [
-    [233, 0.5],
-    [236.5, 0.5], // bate ~3,5 Hz com a anterior: efeito de várias vuvuzelas
-    [466, 0.22],
-    [116.5, 0.12],
+    [VUVUZELA_PITCH, 0.5],
+    [VUVUZELA_PITCH * 1.014, 0.5], // bate ~6 Hz: efeito de várias vuvuzelas juntas
+    [VUVUZELA_PITCH * 2, 0.2],
   ];
 
   const started: OscillatorNode[] = [rasp];
