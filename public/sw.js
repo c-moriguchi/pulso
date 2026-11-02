@@ -2,7 +2,7 @@
  * Estratégia: app shell em cache (cache-first) e navegação network-first,
  * para que uma versão nova apareça assim que houver rede novamente. */
 
-const VERSION = "pulso-v2";
+const VERSION = "pulso-v3";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -47,7 +47,11 @@ self.addEventListener("activate", (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    const response = await fetch(request);
+    // `no-store` é essencial: sem isso o navegador entrega o HTML do cache HTTP
+    // (GitHub Pages guarda 10 min) e o app fica preso na versão antiga mesmo
+    // depois de publicado o deploy novo.
+    const fresh = new Request(request, { cache: "no-store" });
+    const response = await fetch(fresh);
     if (response && response.ok) {
       // Comparar o HTML antigo com o novo: se mudou, é versão nova e os arquivos
       // com hash antigo (`/assets/index-abc.js`) viram lixo no cache.
