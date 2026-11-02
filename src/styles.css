@@ -1,0 +1,81 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-display: "Sora", system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-rest: var(--rest);
+  --color-spotify: var(--spotify);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.16 0.01 250);
+  --foreground: oklch(0.97 0.005 90);
+  --card: oklch(0.21 0.012 250);
+  --card-foreground: oklch(0.97 0.005 90);
+  --popover: oklch(0.21 0.012 250);
+  --popover-foreground: oklch(0.97 0.005 90);
+  --primary: oklch(0.86 0.19 125);
+  --primary-foreground: oklch(0.18 0.02 130);
+  --secondary: oklch(0.26 0.012 250);
+  --secondary-foreground: oklch(0.97 0.005 90);
+  --muted: oklch(0.26 0.012 250);
+  --muted-foreground: oklch(0.68 0.015 250);
+  --accent: oklch(0.72 0.17 45);
+  --accent-foreground: oklch(0.18 0.02 45);
+  --rest: oklch(0.75 0.12 230);
+  --spotify: oklch(0.72 0.19 150);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.3 0.012 250);
+  --input: oklch(0.3 0.012 250);
+  --ring: oklch(0.86 0.19 125);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body, #root { min-height: 100%; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* App instalado não deve rolar a página "elástica" nem destacar toques. */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, .font-display { font-family: var(--font-display); }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+  }
+}
