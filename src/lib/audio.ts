@@ -33,7 +33,9 @@ function engine(): { ctx: AudioContext; out: GainNode } | null {
     limiter.attack.value = 0.002;
     limiter.release.value = 0.15;
     const master = context.createGain();
-    master.gain.value = 1;
+    // Acima de 1.0 de propósito: o limitador logo depois segura o pico sem
+    // distorcer, e o sinal fica no teto — é o que precisa para vencer a música.
+    master.gain.value = 2.4;
     master.connect(limiter);
     limiter.connect(context.destination);
     ctx = context;
@@ -134,8 +136,8 @@ export function gong(): void {
   }
 
   // Ataque: é isso que faz o som aparecer por cima da música.
-  click(audio.ctx, audio.out, 2600, 0.7, 0.05, now);
-  click(audio.ctx, audio.out, 3800, 0.45, 0.03, now);
+  click(audio.ctx, audio.out, 2600, 0.85, 0.06, now);
+  click(audio.ctx, audio.out, 3800, 0.6, 0.04, now);
 }
 
 /** Tic-tac de cronômetro (pausa): quatro estalos alternados, timbre de relógio. */
@@ -147,8 +149,8 @@ export function tickTock(): void {
   for (let index = 0; index < 4; index++) {
     const at = start + index * 0.22;
     const isTick = index % 2 === 0;
-    click(audio.ctx, audio.out, isTick ? 3400 : 2100, 0.85, 0.045, at);
-    partial(audio.ctx, audio.out, isTick ? 1700 : 1050, 0.22, 0.05, at);
+    click(audio.ctx, audio.out, isTick ? 3400 : 2100, 1.0, 0.06, at);
+    partial(audio.ctx, audio.out, isTick ? 1700 : 1050, 0.3, 0.06, at);
   }
 }
 

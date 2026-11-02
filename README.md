@@ -49,11 +49,26 @@ Depois disso o Pulso abre em tela cheia, com ícone próprio, e funciona offline
 - `public/sw.js` — service worker: app shell em cache e navegação network-first.
 - `public/manifest.webmanifest` + ícones — é o que faz o app ser instalável.
 
+## Sons
+
+- **Gongo** ao começar/retomar o exercício e no fim do treino.
+- **Tic-tac de cronômetro** ao entrar na pausa.
+- **Bipe agudo** nos 3, 2, 1 antes de cada troca, mais vibração no celular (Android).
+- Botões **Ouvir gongo** / **Ouvir tic-tac** na tela inicial para conferir antes.
+
+O som é gerado com ataque curto e agudo (2–4 kHz) e passa por um limitador, para
+ser percebido por cima da música. Medido no build: pico em −1,4 dBFS e 0 amostras
+em clipping — ou seja, tocando no teto do volume sem distorcer.
+
 ## Limites conhecidos
 
-- Som com o app **fechado** ou o celular bloqueado depende do sistema; o cronômetro
-  continua certo, mas o gongo pode não tocar. A tela fica ligada durante o treino
-  quando o navegador permite.
+- **O app não abaixa o Spotify.** Música de outro app (ou o player embutido) tem
+  volume próprio que o Pulso não controla. Por isso o sinal é desenhado para
+  atravessar a mixagem — se ainda ficar abafado, aumente o volume do celular: o
+  sinal está no teto e sobe junto.
+- No iPhone, o botão lateral de **silencioso** pode calar os sons do Safari.
+- Som com o app **fechado** depende do sistema; o cronômetro continua certo, mas o
+  gongo pode não tocar. A tela fica ligada durante o treino quando o navegador permite.
 - A playlist do Spotify precisa de internet; o resto do app não.
 - Ao publicar uma versão nova, aumente `VERSION` em `public/sw.js` para limpar os
   caches antigos no próximo acesso.
