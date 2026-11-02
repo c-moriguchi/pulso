@@ -1,61 +1,175 @@
 /**
  * Sons do treino via Web Audio (sem arquivos, sem rede → funciona offline).
  *
+ * Objetivo: o sinal tem de ser percebido **por cima da música**. O app não tem
+ * como abaixar o áudio de outro app (Spotify roda fora dele), então o caminho é
+ * outra coisa: ataque curto e agudo (2–4 kHz, faixa que o ouvido separa melhor da
+ * música), transientes de ruído para "furar" a mixagem e um limitador no fim da
+ * cadeia para tocar no volume máximo sem distorcer.
+ *
  * O contexto precisa ser criado/retomado dentro de um gesto do usuário, por isso
- * `unlockAudio()` é chamado no toque em "Começar".
+ * `unlockAudio()` é chamado no toque em "Começar" e nos botões de ouvir os sons.
  */
 
-let ctx: AudioContext | null = null;
+export type Cue = "gong" | "tick-tock";
 
-function audioContext(): AudioContext | null {
+let ctx: AudioContext | null = null;
+let out: GainNode | null = null;
+let noiseBuffer: AudioBuffer | null = null;
+
+/** Cadeia de saída: ganho master → limitador (compressor) → alto-falante. */
+function engine(): { ctx: AudioContext; out: GainNode } | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
-    ctx = new Ctor();
+    const context = new Ctor();
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -8;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.15;
+    const master = context.createGain();
+    master.gain.value = 1;
+    master.connect(limiter);
+    limiter.connect(context.destination);
+    ctx = context;
+    out = master;
   }
-  return ctx;
+  if (ctx.state === "suspended") void ctx.resume();
+  return out ? { ctx, out } : null;
 }
 
 export function unlockAudio(): void {
-  const ctx = audioContext();
-  if (ctx && ctx.state === "suspended") void ctx.resume();
+  engine();
 }
 
-/** Bipe curto de contagem (3, 2, 1). */
-export function beep(): void {
-  const ctx = audioContext();
-  if (!ctx) return;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+/** Ruído branco curto reaproveitado nos transientes (ataque que "corta" a música). */
+function noise(context: AudioContext): AudioBuffer {
+  if (noiseBuffer) return noiseBuffer;
+  const length = Math.floor(context.sampleRate * 0.12);
+  const buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < length; index++) data[index] = Math.random() * 2 - 1;
+  noiseBuffer = buffer;
+  return buffer;
+}
+
+/** Estalo agudo: ruído em banda, decaimento rápido. */
+function click(
+  context: AudioContext,
+  target: GainNode,
+  frequency: number,
+  peak: number,
+  decay: number,
+  at: number,
+): void {
+  const source = context.createBufferSource();
+  source.buffer = noise(context);
+  const filter = context.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.value = frequency;
+  filter.Q.value = 1.2;
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(peak, at);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(target);
+  source.start(at);
+  source.stop(at + decay + 0.01);
+}
+
+/** Parcial senoidal, com ataque instantâneo e cauda exponencial. */
+function partial(
+  context: AudioContext,
+  target: GainNode,
+  frequency: number,
+  peak: number,
+  decay: number,
+  at: number,
+): void {
+  const osc = context.createOscillator();
+  const gain = context.createGain();
   osc.type = "sine";
-  osc.frequency.value = 880;
+  osc.frequency.value = frequency;
   osc.connect(gain);
-  gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.16);
+  gain.connect(target);
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+  osc.start(at);
+  osc.stop(at + decay + 0.05);
 }
 
-/** Gongo de troca de fase: harmônicos somados, cauda de 3s. */
+/** Bipe de contagem (3, 2, 1): agudo e curto. */
+export function beep(): void {
+  const audio = engine();
+  if (!audio) return;
+  const now = audio.ctx.currentTime;
+  partial(audio.ctx, audio.out, 1320, 0.75, 0.12, now);
+  partial(audio.ctx, audio.out, 2640, 0.3, 0.07, now);
+  click(audio.ctx, audio.out, 3200, 0.6, 0.03, now);
+}
+
+/** Gongo de troca de fase: corpo grave + harmônicos + estalo agudo de ataque. */
 export function gong(): void {
-  const ctx = audioContext();
-  if (!ctx) return;
-  const now = ctx.currentTime;
-  [110, 220.5, 331, 443, 587].forEach((frequency, index) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = frequency;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const peak = 0.25 / (index + 1);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(peak, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 3);
-    osc.start(now);
-    osc.stop(now + 3.05);
-  });
+  const audio = engine();
+  if (!audio) return;
+  const now = audio.ctx.currentTime;
+
+  // Corpo do sino (dá o "peso") e harmônicos altos (dão o corte na mixagem).
+  const partials: Array<[number, number, number]> = [
+    [98, 0.34, 3.0],
+    [196.5, 0.26, 2.6],
+    [294, 0.18, 2.2],
+    [587, 0.15, 1.7],
+    [1174, 0.12, 1.1],
+  ];
+  for (const [frequency, peak, decay] of partials) {
+    partial(audio.ctx, audio.out, frequency, peak, decay, now);
+  }
+
+  // Ataque: é isso que faz o som aparecer por cima da música.
+  click(audio.ctx, audio.out, 2600, 0.7, 0.05, now);
+  click(audio.ctx, audio.out, 3800, 0.45, 0.03, now);
+}
+
+/** Tic-tac de cronômetro (pausa): quatro estalos alternados, timbre de relógio. */
+export function tickTock(): void {
+  const audio = engine();
+  if (!audio) return;
+  const start = audio.ctx.currentTime + 0.01;
+
+  for (let index = 0; index < 4; index++) {
+    const at = start + index * 0.22;
+    const isTick = index % 2 === 0;
+    click(audio.ctx, audio.out, isTick ? 3400 : 2100, 0.85, 0.045, at);
+    partial(audio.ctx, audio.out, isTick ? 1700 : 1050, 0.22, 0.05, at);
+  }
+}
+
+/** Qual som marca a troca para esta fase. */
+export function cueFor(phase: "prepare" | "work" | "rest"): Cue {
+  return phase === "rest" ? "tick-tock" : "gong";
+}
+
+export function playCue(cue: Cue): void {
+  if (cue === "tick-tock") tickTock();
+  else gong();
+}
+
+/**
+ * Vibração como reforço (Android). O iOS não expõe a API; a chamada é ignorada.
+ */
+export function haptic(pattern: number | number[] = 180): void {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    // Alguns navegadores bloqueiam fora de gesto do usuário: não é erro fatal.
+  }
 }

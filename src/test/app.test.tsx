@@ -58,6 +58,12 @@ describe("tela inicial do Pulso", () => {
     expect(screen.queryByText(/Instalar o Pulso no celular/i)).not.toBeInTheDocument();
     expect(localStorage.getItem("pulso.install-dismissed")).toBe("1");
   });
+
+  it("deixa ouvir o gongo e o tic-tac antes de começar", () => {
+    render(<App />);
+    expect(() => fireEvent.click(screen.getByRole("button", { name: /Ouvir gongo/i }))).not.toThrow();
+    expect(() => fireEvent.click(screen.getByRole("button", { name: /Ouvir tic-tac/i }))).not.toThrow();
+  });
 });
 
 describe("treino em andamento", () => {

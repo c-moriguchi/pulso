@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Bell,
   Check,
   ExternalLink,
   Minus,
@@ -8,11 +9,13 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Timer,
   X,
   Zap,
 } from "lucide-react";
 import { useScreenWakeLock, useWorkout } from "./hooks/use-workout";
 import { InstallPrompt } from "./components/InstallPrompt";
+import { playCue, unlockAudio } from "./lib/audio";
 import { LIMITS, loadSettings, saveSettings, type Settings } from "./lib/settings";
 import { formatDuration } from "./lib/workout";
 
@@ -190,6 +193,29 @@ export default function App() {
               loading="lazy"
             />
           )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              unlockAudio();
+              playCue("gong");
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
+          >
+            <Bell size={14} className="text-primary" /> Ouvir gongo
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              unlockAudio();
+              playCue("tick-tock");
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground transition active:scale-[0.98]"
+          >
+            <Timer size={14} className="text-rest" /> Ouvir tic-tac
+          </button>
         </div>
 
         <button

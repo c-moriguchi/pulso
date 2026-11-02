@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { beep, gong, unlockAudio } from "../lib/audio";
+import { beep, cueFor, gong, haptic, playCue, unlockAudio } from "../lib/audio";
 import {
   buildPlan,
   formatClock,
@@ -87,6 +87,7 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     if (position.finished) {
       setStatus("finished");
       gong();
+      haptic([120, 80, 120]);
     }
   }, [status, position.finished]);
 
@@ -102,7 +103,9 @@ export function useWorkout({ workSeconds, restSeconds, rounds }: UseWorkoutOptio
     }
     const key = segmentKey(position.segment);
     if (lastSegment.current !== null && lastSegment.current !== key) {
-      gong();
+      // Gongo ao entrar em exercício; tic-tac de cronômetro ao entrar na pausa.
+      playCue(cueFor(position.segment.kind));
+      haptic(180);
       lastBeepedSecond.current = null;
     }
     lastSegment.current = key;
