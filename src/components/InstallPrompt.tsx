@@ -61,35 +61,32 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="mb-4 rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-          <Download size={18} />
-        </span>
-        <div className="flex-1">
-          <p className="font-semibold leading-tight">Instalar o Pulso no celular</p>
-          <p className="text-sm text-muted-foreground">Ícone na tela inicial, abre sem internet.</p>
-        </div>
+    <div className="mb-3 rounded-2xl border border-border bg-card px-3 py-2">
+      <div className="flex items-center gap-2">
+        <Download size={16} className="shrink-0 text-primary" />
+        <p className="flex-1 text-xs leading-tight">
+          <span className="font-semibold">Instalar o Pulso no celular</span>{" "}
+          <span className="text-muted-foreground">— ícone na tela, abre sem internet.</span>
+        </p>
+        <button
+          type="button"
+          onClick={install}
+          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition active:scale-95"
+        >
+          {deferred ? "Instalar" : "Como instalar"}
+        </button>
         <button
           type="button"
           aria-label="Agora não"
           onClick={dismiss}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition active:scale-95"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted-foreground transition active:scale-95"
         >
-          <X size={16} />
+          <X size={14} />
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={install}
-        className="mt-3 w-full rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition active:scale-[0.98]"
-      >
-        {deferred ? "Instalar agora" : "Como instalar"}
-      </button>
-
       {showSteps && !deferred && (
-        <div className="mt-3 space-y-2 rounded-xl bg-secondary/60 p-3 text-sm">
+        <div className="mt-2 space-y-1.5 rounded-xl bg-secondary/60 p-3 text-sm">
           {isIos ? (
             <p className="flex items-start gap-2">
               <Share size={16} className="mt-0.5 shrink-0" />
