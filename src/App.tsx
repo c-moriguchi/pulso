@@ -11,9 +11,9 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
+  Square,
   Timer,
   Volume2,
-  X,
   Zap,
 } from "lucide-react";
 import { useMusic } from "./hooks/use-music";
@@ -271,21 +271,12 @@ export default function App() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="flex items-center justify-between">
-        <button
-          type="button"
-          aria-label="Sair do treino"
-          onClick={workout.stop}
-          className="grid h-11 w-11 place-items-center rounded-full bg-card transition active:scale-95"
-        >
-          <X size={20} />
-        </button>
+      <header className="flex items-center justify-center">
         <span className="font-semibold tabular-nums">
           {finished
             ? `${plan.rounds} ${plan.rounds === 1 ? "rodada" : "rodadas"}`
             : `Rodada ${position.round}/${plan.rounds}`}
         </span>
-        <span className="w-11" aria-hidden="true" />
       </header>
 
       <div className="flex flex-1 flex-col items-center justify-center">
@@ -357,15 +348,17 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex justify-center gap-4">
-        <button
-          type="button"
-          aria-label="Recomeçar"
-          onClick={workout.start}
-          className="grid h-16 w-16 place-items-center rounded-full bg-card transition active:scale-95"
-        >
-          <RotateCcw size={24} />
-        </button>
+      <div className="flex items-center justify-center gap-3">
+        {!finished && (
+          <button
+            type="button"
+            aria-label="Parar treino"
+            onClick={workout.stop}
+            className="flex h-16 w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl bg-card text-[0.7rem] font-semibold text-muted-foreground transition active:scale-95"
+          >
+            <Square size={18} fill="currentColor" /> Parar
+          </button>
+        )}
         {!finished && (
           <button
             type="button"
@@ -376,13 +369,22 @@ export default function App() {
             {status === "paused" ? <Play size={26} fill="currentColor" /> : <Pause size={26} fill="currentColor" />}
           </button>
         )}
+        <button
+          type="button"
+          aria-label="Recomeçar"
+          onClick={workout.start}
+          className="flex h-16 w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl bg-card text-[0.7rem] font-semibold text-muted-foreground transition active:scale-95"
+        >
+          <RotateCcw size={18} /> Recomeçar
+        </button>
         {finished && (
           <button
             type="button"
+            aria-label="Novo treino"
             onClick={workout.stop}
-            className="flex h-16 items-center justify-center gap-2 rounded-full bg-primary px-8 font-bold text-primary-foreground transition active:scale-95"
+            className="flex h-16 items-center justify-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground transition active:scale-95"
           >
-            <Check size={22} /> Novo treino
+            <Check size={20} /> Novo treino
           </button>
         )}
       </div>

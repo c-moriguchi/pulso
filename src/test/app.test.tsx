@@ -110,6 +110,17 @@ describe("treino em andamento", () => {
     expect(screen.getByText("00:30")).toBeInTheDocument();
   });
 
+  it("o botão Parar encerra a sequência e volta para a configuração", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Começar/i }));
+    expect(screen.getByText("Prepare-se")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Parar treino/i }));
+
+    expect(screen.getByRole("button", { name: /Começar/i })).toBeInTheDocument();
+    expect(screen.queryByText("Prepare-se")).not.toBeInTheDocument();
+  });
+
   it("pausa segura o relógio parado", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Começar/i }));

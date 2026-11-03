@@ -68,7 +68,7 @@ playlist, se existir, aparece como atalho opcional logo abaixo do cartão.
 | Momento | O que toca |
 |---|---|
 | Exercício começa / nova rodada | **Vuvuzela** + voz dizendo **"Exercício"** |
-| Pausa começa | **Tic-tac de cronômetro** + voz dizendo **"Pausa"** |
+| Pausa começa | **Tic-tac de cronômetro** (10 estalos densos, mesmo pico da vuvuzela) + voz dizendo **"Pausa"** |
 | 3, 2, 1 antes de cada troca | Bipe agudo |
 | Fim do treino | **Vuvuzela** + voz dizendo **"Fim"** |
 

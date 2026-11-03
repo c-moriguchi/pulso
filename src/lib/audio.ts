@@ -213,17 +213,24 @@ export function vuvuzela(): void {
   }
 }
 
-/** Tic-tac de cronômetro (pausa): quatro estalos alternados, timbre de relógio. */
+/**
+ * Tic-tac de cronômetro (pausa): estalos alternados de relógio.
+ *
+ * Seis estalos mais próximos e com mais corpo no médio: mediram-se 7 dB abaixo da
+ * vuvuzela com quatro estalos curtos, e o usuário pedia o mesmo volume para as duas
+ * fases. A densidade (energia em janela curta) é o que faz a diferença percebida.
+ */
 export function tickTock(): void {
   const audio = engine();
   if (!audio) return;
   const start = audio.ctx.currentTime + 0.01;
 
-  for (let index = 0; index < 4; index++) {
-    const at = start + index * 0.22;
+  for (let index = 0; index < 10; index++) {
+    const at = start + index * 0.12;
     const isTick = index % 2 === 0;
-    click(audio.ctx, audio.out, isTick ? 3400 : 2100, 1.0, 0.06, at);
-    partial(audio.ctx, audio.out, isTick ? 1700 : 1050, 0.3, 0.06, at);
+    click(audio.ctx, audio.out, isTick ? 3400 : 2100, 1.0, 0.12, at);
+    partial(audio.ctx, audio.out, isTick ? 1700 : 1050, 0.8, 0.13, at);
+    partial(audio.ctx, audio.out, isTick ? 850 : 620, 0.35, 0.11, at);
   }
 }
 
@@ -339,7 +346,7 @@ export function duckMusic(holdMs = 1600): void {
   if (!audio || !musicGain) return;
   const now = audio.ctx.currentTime;
   const gain = musicGain.gain;
-  const low = musicLevel * 0.16;
+  const low = musicLevel * 0.08;
   const holdEnd = now + 0.12 + holdMs / 1000;
   gain.cancelScheduledValues(now);
   gain.setValueAtTime(gain.value, now);
